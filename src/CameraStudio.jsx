@@ -92,6 +92,7 @@ let y = padding + headerHeight;
 images.forEach((image, index) => {
   const photoHeight = heights[index];
 
+  if (frame.type !== "polaroid") {
   context.drawImage(
     image,
     padding,
@@ -99,19 +100,74 @@ images.forEach((image, index) => {
     width,
     photoHeight
   );
+}
 
-  const frameColor = FRAME_STYLES[decorations.frameStyle].color;
+  const frame = FRAME_STYLES[decorations.frameStyle];
 
-  if (frameColor) {
-    context.strokeStyle = frameColor;
-    context.lineWidth = 8;
-    context.strokeRect(
-      padding + 4,
-      y + 4,
-      width - 8,
-      photoHeight - 8
+if (frame.type === "simple") {
+  context.strokeStyle = frame.color;
+  context.lineWidth = 12;
+
+  context.strokeRect(
+    padding + 6,
+    y + 6,
+    width - 12,
+    photoHeight - 12
+  );
+}
+
+if (frame.type === "film") {
+  context.strokeStyle = frame.color;
+  context.lineWidth = 14;
+
+  context.strokeRect(
+    padding + 7,
+    y + 7,
+    width - 14,
+    photoHeight - 14
+  );
+
+  // Film perforations
+  context.fillStyle = "#FFFFFF";
+
+  const holeSize = 7;
+  const holeSpacing = 22;
+
+  for (
+    let holeY = y + 18;
+    holeY < y + photoHeight - 10;
+    holeY += holeSpacing
+  ) {
+    context.fillRect(padding + 3, holeY, holeSize, holeSize);
+
+    context.fillRect(
+      padding + width - 10,
+      holeY,
+      holeSize,
+      holeSize
     );
   }
+}
+
+if (frame.type === "polaroid") {
+  // White border with a wider bottom edge
+  context.fillStyle = "#FFFFFF";
+
+  context.fillRect(
+    padding - 5,
+    y - 5,
+    width + 10,
+    photoHeight + 24
+  );
+
+  context.drawImage(
+    image,
+    padding,
+    y,
+    width,
+    photoHeight
+  );
+}
 
   y += photoHeight + gap;
 });
@@ -149,20 +205,34 @@ return canvas.toDataURL("image/png");
 const PHOTO_FILTERS = {
   original: {
     name: "Original",
-    css: "none"
+    description: "Natural colors",
+    css: "none",
   },
   soft: {
-    name: "Soft",
-    css: "saturate(0.85) sepia(0.12)"
+    name: "Soft Glow",
+    description: "Gentle and dreamy",
+    css: "brightness(1.08) contrast(0.92) saturate(0.85)",
   },
   vintage: {
-    name: "Vintage",
-    css: "sepia(0.35) saturate(0.8)"
+    name: "Vintage Film",
+    description: "Warm retro mood",
+    css: "sepia(0.3) contrast(0.92) saturate(0.8)",
+  },
+  warm: {
+    name: "Warm Tone",
+    description: "Golden and cozy",
+    css: "sepia(0.18) saturate(1.2) brightness(1.04)",
+  },
+  cool: {
+    name: "Cool Tone",
+    description: "Fresh lavender mood",
+    css: "hue-rotate(12deg) saturate(0.85) brightness(1.04)",
   },
   mono: {
-    name: "B&W",
-    css: "grayscale(1)"
-  }
+    name: "Black & White",
+    description: "Classic monochrome",
+    css: "grayscale(1) contrast(1.08)",
+  },
 };
 
 
@@ -178,20 +248,34 @@ const STICKERS = [
 const FRAME_STYLES = {
   none: {
     name: "No Frame",
-    color: null
+    type: "none",
+    color: null,
   },
   white: {
-    name: "White",
-    color: "#FFFFFF"
+    name: "Classic White",
+    type: "simple",
+    color: "#FFFFFF",
   },
   pink: {
-    name: "Pink",
-    color: "#D9A8B9"
+    name: "Blush Pink",
+    type: "simple",
+    color: "#D9A8B9",
   },
   lavender: {
-    name: "Lavender",
-    color: "#B9A9D5"
-  }
+    name: "Lavender Dream",
+    type: "simple",
+    color: "#B9A9D5",
+  },
+  film: {
+    name: "Film Border",
+    type: "film",
+    color: "#51434E",
+  },
+  polaroid: {
+    name: "Polaroid",
+    type: "polaroid",
+    color: "#FFFFFF",
+  },
 };
 
 
@@ -432,26 +516,54 @@ const [caption, setCaption] = useState("A little moment to remember");
 
     <div className="editing-controls">
   <div className="filter-section">
-    <h3>Choose your filter</h3>
-
-    <div className="filter-options">
-      {Object.entries(PHOTO_FILTERS).map(([key, filter]) => (
-        <button
-          key={key}
-          className={`filter-option ${
-            selectedFilter === key ? "active" : ""
-          }`}
-          onClick={() => setSelectedFilter(key)}
-          disabled={countdown !== null || Boolean(capturedImage)}
-        >
-          <span
-            className={`filter-preview filter-${key}`}
-          />
-          {filter.name}
-        </button>
-      ))}
+  <div className="editor-heading">
+    <div>
+      <h3>Choose Your Mood</h3>
+      <p>Find the perfect tone for your photos</p>
     </div>
+    <span className="editor-label">01 / FILTERS</span>
   </div>
+
+  <div className="filter-grid">
+    {Object.entries(PHOTO_FILTERS).map(([key, filter]) => (
+      <button
+        key={key}
+        type="button"
+        className={`filter-card ${
+          selectedFilter === key ? "active" : ""
+        }`}
+        onClick={() => setSelectedFilter(key)}
+        disabled={countdown !== null || capturedImage !== null}
+      >
+        <div className={`filter-sample ${`sample-${key}`}`}>
+          <div
+            className="sample-portrait"
+            style={{ filter: filter.css }}
+          >
+            <div className="sample-hair" />
+            <div className="sample-face">
+              <div className="sample-eyes" />
+              <div className="sample-nose" />
+              <div className="sample-mouth" />
+            </div>
+            <div className="sample-body" />
+          </div>
+        </div>
+
+        <div className="filter-card-info">
+          <span className="filter-card-name">{filter.name}</span>
+          <span className="filter-card-description">
+            {filter.description}
+          </span>
+        </div>
+
+        {selectedFilter === key && (
+          <span className="filter-selected">✓</span>
+        )}
+      </button>
+    ))}
+  </div>
+</div>
 
   <div className="adjustment-section">
     <div className="adjustment-control">
@@ -530,22 +642,43 @@ const [caption, setCaption] = useState("A little moment to remember");
   </div>
 
   {/* Frame selection */}
-  <div className="decoration-group">
-    <label>Photo frame</label>
-
-    <div className="frame-options">
-      {Object.entries(FRAME_STYLES).map(([key, frame]) => (
-        <button
-          key={key}
-          className={frameStyle === key ? "active" : ""}
-          onClick={() => setFrameStyle(key)}
-          disabled={countdown !== null || Boolean(capturedImage)}
-        >
-          {frame.name}
-        </button>
-      ))}
+  <div className="decoration-group frame-group">
+  <div className="editor-heading">
+    <div>
+      <h3>Choose Your Frame</h3>
+      <p>Give your photo strip its finishing touch</p>
     </div>
+    <span className="editor-label">02 / FRAMES</span>
   </div>
+
+  <div className="frame-grid">
+    {Object.entries(FRAME_STYLES).map(([key, frame]) => (
+      <button
+        key={key}
+        type="button"
+        className={`frame-card ${
+          frameStyle === key ? "active" : ""
+        }`}
+        onClick={() => setFrameStyle(key)}
+        disabled={countdown !== null || capturedImage !== null}
+      >
+        <div className={`frame-sample frame-${key}`}>
+          <div className="mini-photo-strip">
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+
+        <span className="frame-card-name">{frame.name}</span>
+
+        {frameStyle === key && (
+          <span className="frame-selected">✓</span>
+        )}
+      </button>
+    ))}
+  </div>
+</div>
 
   {/* Custom caption */}
   <div className="decoration-group">
