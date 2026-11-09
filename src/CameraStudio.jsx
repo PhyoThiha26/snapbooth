@@ -92,7 +92,11 @@ let y = padding + headerHeight;
 images.forEach((image, index) => {
   const photoHeight = heights[index];
 
-  if (frame.type !== "polaroid") {
+  
+
+  const frame = FRAME_STYLES[decorations.frameStyle];
+  
+if (frame.type !== "polaroid") {
   context.drawImage(
     image,
     padding,
@@ -101,8 +105,6 @@ images.forEach((image, index) => {
     photoHeight
   );
 }
-
-  const frame = FRAME_STYLES[decorations.frameStyle];
 
 if (frame.type === "simple") {
   context.strokeStyle = frame.color;
